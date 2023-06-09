@@ -21,3 +21,7 @@
 go.work
 
 .idea/*
+
+docker-compose.yml
+db-data/postgres
+db-data/redis
