@@ -21,9 +21,9 @@ import (
 
 func main() {
 	// connect to the database
-	initDB()
+	db := initDB()
+	db.Ping()
 	// create sessions
-	initSession()
 	// create loggers
 
 	// create channels
