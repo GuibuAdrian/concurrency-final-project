@@ -120,8 +120,6 @@ func (app *Config) PostRegisterPage(w http.ResponseWriter, r *http.Request) {
 
 	app.Session.Put(r.Context(), "flash", "Confirmation email sent. Check your email.")
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
-
-	// subscrbibe the user to an account
 }
 
 func (app *Config) ActivateAccount(w http.ResponseWriter, r *http.Request) {
@@ -161,4 +159,6 @@ func (app *Config) ActivateAccount(w http.ResponseWriter, r *http.Request) {
 	// send an email with attachments
 
 	// send an email with the invoice attached
+
+	// subscribe the user to an account
 }

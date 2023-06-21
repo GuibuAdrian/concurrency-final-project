@@ -1,85 +1,80 @@
 package main
 
-import "net/http"
+import (
+	"final-project/cmd/data"
+	"fmt"
+	"html/template"
+	"net/http"
+	"time"
+)
 
-func (app *Config) homePage(w http.ResponseWriter, r *http.Request) {
-	app.render(w, r, "home.page.gohtml", nil)
+var pathToTemplates = "./cmd/web/templates"
+
+type TemplateData struct {
+	StringMap     map[string]string
+	IntMap        map[string]string
+	FloatMap      map[string]string
+	Data          map[string]any
+	Flash         string
+	Warning       string
+	Error         string
+	Authenticated bool
+	Now           time.Time
+	User          *data.User
 }
 
-func (app *Config) LoginPage(w http.ResponseWriter, r *http.Request) {
-	app.render(w, r, "login.page.gohtml", nil)
-}
+func (app *Config) render(w http.ResponseWriter, r *http.Request, t string, td *TemplateData) {
+	partials := []string{
+		fmt.Sprintf("%s/base.layout.gohtml", pathToTemplates),
+		fmt.Sprintf("%s/header.partial.gohtml", pathToTemplates),
+		fmt.Sprintf("%s/navbar.partial.gohtml", pathToTemplates),
+		fmt.Sprintf("%s/footer.partial.gohtml", pathToTemplates),
+		fmt.Sprintf("%s/alerts.partial.gohtml", pathToTemplates),
+	}
 
-func (app *Config) PostLoginPage(w http.ResponseWriter, r *http.Request) {
-	_ = app.Session.RenewToken(r.Context())
+	var templateSlice []string
+	templateSlice = append(templateSlice, fmt.Sprintf("%s/%s", pathToTemplates, t))
 
-	// parse form post
-	err := r.ParseForm()
+	for _, x := range partials {
+		templateSlice = append(templateSlice, x)
+	}
+
+	if td == nil {
+		td = &TemplateData{}
+	}
+
+	templ, err := template.ParseFiles(templateSlice...)
 	if err != nil {
 		app.ErrorLog.Println(err)
-	}
-
-	// get email and password from form post
-	email := r.Form.Get("email")
-	password := r.Form.Get("password")
-
-	user, err := app.Models.User.GetByEmail(email)
-	if err != nil {
-		app.Session.Put(r.Context(), "error", "Invalid credentials.")
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// check password
-	validPassword, err := user.PasswordMatches(password)
-	if err != nil {
-		app.Session.Put(r.Context(), "error", "Invalid credentials.")
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
+	if err := templ.Execute(w, app.AddDefaultedData(td, r)); err != nil {
+		app.ErrorLog.Println(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+}
 
-	if !validPassword {
-		app.Session.Put(r.Context(), "error", "Invalid credentials.")
-		http.Redirect(w, r, "/login", http.StatusSeeOther)
-		return
+func (app *Config) AddDefaultedData(td *TemplateData, r *http.Request) *TemplateData {
+	td.Flash = app.Session.PopString(r.Context(), "flash")
+	td.Warning = app.Session.PopString(r.Context(), "warning")
+	td.Error = app.Session.PopString(r.Context(), "error")
+	if app.IsAuthenticated(r) {
+		td.Authenticated = true
+		user, ok := app.Session.Get(r.Context(), "user").(data.User)
+		if !ok {
+			app.ErrorLog.Println("can't get user from session")
+		} else {
+			td.User = &user
+		}
 	}
+	td.Now = time.Now()
 
-	// okay, so log user in
-	app.Session.Put(r.Context(), "userID", user.ID)
-	app.Session.Put(r.Context(), "user", user)
-
-	app.Session.Put(r.Context(), "flash", "Successful login!")
-
-	// redirect the user
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	return td
 }
 
-func (app *Config) Logout(w http.ResponseWriter, r *http.Request) {
-	// clean up session
-	_ = app.Session.Destroy(r.Context())
-	_ = app.Session.RenewToken(r.Context())
-
-	http.Redirect(w, r, "/login", http.StatusSeeOther)
-}
-
-func (app *Config) RegisterPage(w http.ResponseWriter, r *http.Request) {
-	app.render(w, r, "register.page.gohtml", nil)
-}
-
-func (app *Config) PostRegisterPage(w http.ResponseWriter, r *http.Request) {
-	// create a user
-
-	// send an activation email
-
-	// subscbribe the user to an account
-}
-
-func (app *Config) ActivateAccount(w http.ResponseWriter, r *http.Request) {
-	// validate url
-
-	// generate an invoice
-
-	// send an email with attachments
-
-	// send an email with the invoice attached
+func (app *Config) IsAuthenticated(r *http.Request) bool {
+	return app.Session.Exists(r.Context(), "userID")
 }
