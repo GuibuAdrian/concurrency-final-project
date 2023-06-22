@@ -9,11 +9,12 @@ import (
 
 // Plan is the type for subscription plans
 type Plan struct {
-	ID         int
-	PlanName   string
-	PlanAmount int
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
+	ID                  int
+	PlanName            string
+	PlanAmount          int
+	PlanAmountFormatted string
+	CreatedAt           time.Time
+	UpdatedAt           time.Time
 }
 
 func (p *Plan) GetAll() ([]*Plan, error) {
@@ -72,6 +73,8 @@ func (p *Plan) GetOne(id int) (*Plan, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	plan.PlanAmountFormatted = plan.AmountForDisplay()
 
 	return &plan, nil
 }
