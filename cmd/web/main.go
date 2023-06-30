@@ -3,7 +3,7 @@ package main
 import (
 	"database/sql"
 	"encoding/gob"
-	"final-project/data"
+	"final-project/cmd/data"
 	"fmt"
 	"log"
 	"net/http"
