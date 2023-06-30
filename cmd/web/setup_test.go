@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/gob"
 	"final-project/cmd/data"
-	"final-project/data"
 	"log"
 	"net/http"
 	"os"
@@ -20,6 +19,9 @@ var testApp Config
 
 func TestMain(m *testing.M) {
 	gob.Register(data.User{})
+
+	tmpPath = "./../../tmp"
+	pathToManual = "./../../pdf"
 
 	// set up session
 	session := scs.New()
@@ -45,6 +47,7 @@ func TestMain(m *testing.M) {
 	mailerChan := make(chan Message, 100)
 	mailerDoneChan := make(chan bool)
 
+	//Dummy mailer
 	testApp.Mailer = Mail{
 		Wait:       testApp.Wait,
 		ErrorChan:  errorChan,
@@ -53,11 +56,14 @@ func TestMain(m *testing.M) {
 	}
 
 	go func() {
-		select {
-		case <-testApp.Mailer.MailerChan:
-		case <-testApp.Mailer.ErrorChan:
-		case <-testApp.Mailer.DoneChan:
-			return
+		for {
+			select {
+			case <-testApp.Mailer.MailerChan:
+				testApp.Wait.Done()
+			case <-testApp.Mailer.ErrorChan:
+			case <-testApp.Mailer.DoneChan:
+				return
+			}
 		}
 	}()
 

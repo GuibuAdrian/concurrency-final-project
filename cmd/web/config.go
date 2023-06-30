@@ -2,7 +2,7 @@ package main
 
 import (
 	"database/sql"
-	"final-project/data"
+	"final-project/cmd/data"
 	"log"
 	"sync"
 
